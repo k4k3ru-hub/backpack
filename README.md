@@ -30,7 +30,7 @@ Symbols are sent unchanged. The module never adds or removes `_PERP` and never c
 | Kline | `/api/v1/klines` | `kline.<interval>.<symbol>` | REST range uses Unix seconds; WS candle times are ISO 8601 |
 | Mark/index/current funding | `/api/v1/markPrices` | `markPrice.<symbol>` | Futures-oriented optional values |
 | Funding history | `/api/v1/fundingRates` | `markPrice.<symbol>` | History and estimate have different meanings |
-| Open interest | `/api/v1/openInterest` | `openInterest.<symbol>` | WS is documented as approximately every 60 seconds |
+| Open interest | `/api/v1/openInterest` | `openInterest.<symbol>` | Contracts; WS is documented as approximately every 60 seconds |
 | Liquidations | — | `liquidation.<symbol>` | Backpack side is preserved unchanged |
 | System state | `/api/v1/status` | — | Returned state is not converted to a boolean health claim |
 | Connectivity | `/api/v1/ping` | — | Plain-text `pong` response |
@@ -65,11 +65,23 @@ klines, err := client.Tickers().GetKlines(ctx, rest.KlinesParams{
     Interval:  rest.KlineInterval1Minute,
     StartTime: time.Now().Add(-time.Hour).Unix(),
 })
+
+openInterest, err := client.Futures().GetOpenInterest(ctx, rest.OpenInterestParams{
+	Symbol: "SOL_USDC_PERP",
+})
 ```
 
 Inject a custom client or base URL with `rest.WithHTTPClient` and `rest.WithBaseURL`. Requests are immutable per call. Responses are bounded, bodies are always closed, and non-2xx responses are returned as `*rest.ResponseError`, including bounded Backpack error data, status, `Retry-After`, and common rate-limit headers.
 
 Price, quantity, volume, rates, and open interest remain decimal strings. The SDK never converts them to `float64`.
+
+### Open interest semantics
+
+Backpack reports `openInterest` in contracts. The public REST endpoint returns the current observation for one symbol or all supported futures symbols; it is not a historical endpoint. The `timestamp` field is the venue observation time in Unix microseconds.
+
+The official public market metadata exposes base and quote assets, quantity filters, and an open-interest limit, but does not expose a distinct contract-size multiplier. This module therefore preserves the raw contract count and does not assume that one contract equals one base asset. Callers must verify contract-size semantics before converting Open Interest into base-asset quantity or quote notional.
+
+Backpack does not currently document a public historical Open Interest endpoint. Applications that need history must persist REST snapshots or WebSocket observations themselves. The ordinary automated test suite does neither and never contacts production.
 
 Depth limits currently accepted by the official specification are 5, 10, 20, 50, 100, 500, and 1000. Omitting `limit` lets the server return up to 5000 levels. Recent and historical trade limits are at most 1000; historical `offset + limit` is at most 10000. Funding history currently permits a limit up to 10000.
 
@@ -89,7 +101,8 @@ defer client.Close()
 
 depthStream, _ := websocket.DepthStream("SOL_USDC")
 tradeStream, _ := websocket.TradeStream("SOL_USDC")
-if err := client.Subscribe(ctx, depthStream, tradeStream); err != nil {
+openInterestStream, _ := websocket.OpenInterestStream("SOL_USDC_PERP")
+if err := client.Subscribe(ctx, depthStream, tradeStream, openInterestStream); err != nil {
     return err
 }
 
@@ -110,6 +123,8 @@ for {
 The event channel is bounded. If it fills, the client reports `websocket.ErrSlowConsumer` and closes the connection instead of silently dropping market data. Callers therefore control throughput by selecting an appropriate buffer and draining events promptly.
 
 Automatic reconnect is intentionally not implemented. A disconnect is reported through `Errors()`, and the caller must create/connect a new client and restore subscriptions. This avoids implying depth continuity across a disconnected session.
+
+The `openInterest.<symbol>` stream publishes the venue-reported contract count approximately every 60 seconds. Its `E` field is the observation event time in Unix microseconds. The stream does not provide contract size, base-asset quantity, quote notional, or historical backfill; the client does not synthesize those values.
 
 ### Depth snapshot and updates
 

@@ -114,7 +114,10 @@ func TestDecodeEvents(t *testing.T) {
 			v := e.(*MarkPriceEvent)
 			return v.EstimatedFundingRate == nil && v.IndexPrice == nil && v.NextFundingTimestamp == nil
 		}},
-		{"oi", `{"stream":"openInterest.X","data":{"e":"openInterest","E":1,"s":"X","o":"100"}}`, func(e Event) bool { return e.(*OpenInterestEvent).OpenInterest == "100" }},
+		{"oi", `{"stream":"openInterest.X","data":{"e":"openInterest","E":1694687965941000,"s":"X","o":"100"}}`, func(e Event) bool {
+			v := e.(*OpenInterestEvent)
+			return v.StreamName() == "openInterest.X" && v.EventType == "openInterest" && v.EventTimestamp == 1694687965941000 && v.Symbol == "X" && v.OpenInterest == "100"
+		}},
 		{"liquidation", `{"stream":"liquidation.X","data":{"e":"liquidation","E":1,"T":2,"s":"X","S":"Bid","p":"3","q":"4"}}`, func(e Event) bool { return e.(*LiquidationEvent).Side == SideBid }},
 		{"unknown", `{"stream":"future.X","data":{"e":"future","x":1}}`, func(e Event) bool { _, ok := e.(*UnknownEvent); return ok }},
 	}

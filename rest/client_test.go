@@ -101,7 +101,7 @@ func TestRESTOperations(t *testing.T) {
 		}},
 		{"open interest", "/api/v1/openInterest", "", `[{"symbol":"SOL_USDC_PERP","openInterest":"123","timestamp":1}]`, func(c *Client) error {
 			v, e := c.Futures().GetOpenInterest(context.Background(), OpenInterestParams{})
-			if e == nil && v[0].OpenInterest != "123" {
+			if e == nil && (len(v) != 1 || v[0].Symbol != "SOL_USDC_PERP" || v[0].OpenInterest != "123" || v[0].Timestamp != 1) {
 				return errors.New("oi decode")
 			}
 			return e

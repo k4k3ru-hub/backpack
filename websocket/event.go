@@ -173,7 +173,8 @@ type OpenInterestEvent struct {
 	EventType      string               `json:"e"`
 	EventTimestamp MicrosecondTimestamp `json:"E"`
 	Symbol         string               `json:"s"`
-	OpenInterest   string               `json:"o"`
+	// OpenInterest is the venue-reported open interest in contracts.
+	OpenInterest string `json:"o"`
 }
 type LiquidationEvent struct {
 	eventBase

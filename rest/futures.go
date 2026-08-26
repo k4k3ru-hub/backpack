@@ -35,9 +35,11 @@ func (t MillisecondTimestamp) Time() (time.Time, error) {
 
 type OpenInterestParams struct{ Symbol string }
 type OpenInterest struct {
-	Symbol       string               `json:"symbol"`
-	OpenInterest string               `json:"openInterest"`
-	Timestamp    MicrosecondTimestamp `json:"timestamp"`
+	Symbol string `json:"symbol"`
+	// OpenInterest is the venue-reported open interest in contracts.
+	OpenInterest string `json:"openInterest"`
+	// Timestamp is the venue observation time in Unix microseconds.
+	Timestamp MicrosecondTimestamp `json:"timestamp"`
 }
 type FundingRatesParams struct {
 	Symbol string
