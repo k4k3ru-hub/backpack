@@ -173,3 +173,10 @@ go run ./cli rest markets --market-types SPOT,PERP
 ## Deliberately out of scope
 
 Private APIs and streams, authentication/signing, orders, RFQs, accounts, balances, positions, capital operations, borrow/lend, securities and market-session APIs, prediction-specific APIs, stock-price streams, persistence, local-book synchronization, automatic reconnect, and K4K3RU integration are not implemented.
+
+## Go toolchain
+
+Development and verification use Go 1.27.3. The module minimum Go version is
+unchanged. The `toolchain` directive selects Go when working in this module;
+consuming applications must select a patched Go toolchain and rebuild to receive
+TLS security fixes.
